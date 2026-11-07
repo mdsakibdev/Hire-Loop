@@ -3,11 +3,16 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { MenuIcon, XIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  LogOutIcon,
+  MenuIcon,
+  XIcon,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Sheet,
   SheetClose,
@@ -16,6 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { authClient } from "@/lib/auth-client"
 
 const navLinks = [
   { label: "Browse Jobs", href: "/browse-jobs" },
@@ -38,8 +44,19 @@ function getSheetLinkClassName(active: boolean) {
 }
 
 export function Navbar() {
+  const { data: session, isPending } = authClient.useSession()
+  const router = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  const user = session?.user ?? null
+  const userInitial = user?.name?.charAt(0).toUpperCase() ?? "U"
+
+  async function handleSignOut() {
+    await authClient.signOut()
+    router.push("/")
+    router.refresh()
+  }
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#212121]">
@@ -119,25 +136,55 @@ export function Navbar() {
 
               <Separator className="my-2 bg-white/10" />
 
-              <Link href="/sign-in" onClick={() => setOpen(false)}>
-                <span
-                  className={getSheetLinkClassName(
-                    pathname === "/sign-in"
-                  )}
-                >
-                  Sign In
-                </span>
-              </Link>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2">
+                    <Avatar size="lg">
+                      {user.image && (
+                        <AvatarImage src={user.image} alt={user.name ?? "Profile picture"} />
+                      )}
+                      <AvatarFallback className="bg-indigo-500/20 text-indigo-300">
+                        {userInitial}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 leading-tight">
+                      <p className="text-sm font-medium text-white">Welcome back,</p>
+                      <p className="truncate text-sm text-zinc-300">{user.name}</p>
+                    </div>
+                  </div>
 
-              <div className="mt-2 flex flex-col gap-2">
-                <Button
-                  render={<Link href="/sign-up" />}
-                  onClick={() => setOpen(false)}
-                  className="h-10 bg-indigo-500 text-white hover:bg-indigo-600"
-                >
-                  Get Started
-                </Button>
-              </div>
+                  <Button
+                    variant="ghost"
+                    onClick={handleSignOut}
+                    className="mt-2 h-10 justify-start text-zinc-300 hover:bg-white/10 hover:text-white"
+                  >
+                    <LogOutIcon className="size-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/sign-in" onClick={() => setOpen(false)}>
+                    <span
+                      className={getSheetLinkClassName(
+                        pathname === "/sign-in"
+                      )}
+                    >
+                      Sign In
+                    </span>
+                  </Link>
+
+                  <div className="mt-2 flex flex-col gap-2">
+                    <Button
+                      render={<Link href="/sign-up" />}
+                      onClick={() => setOpen(false)}
+                      className="h-10 bg-indigo-500 text-white hover:bg-indigo-600"
+                    >
+                      Get Started
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>
@@ -161,19 +208,50 @@ export function Navbar() {
             className="h-6 bg-white/20 lg:h-7"
           />
 
-          <Link
-            href="/sign-in"
-            className="text-sm font-medium text-indigo-400 transition-colors hover:text-indigo-300"
-          >
-            Sign In
-          </Link>
+          {isPending ? null : user ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-300">
+                Welcome back,{" "}
+                <span className="font-medium text-white">{user.name}</span>
+              </span>
 
-          <Button
-          render={<Link href="/sign-up" />}
-                  onClick={() => setOpen(false)}
-           className="h-10 rounded-lg bg-indigo-500 px-5 text-white hover:bg-indigo-600 md:px-6 md:text-base">
-            Get Started
-          </Button>
+              <Avatar className="size-9 md:size-10">
+                {user.image && (
+                  <AvatarImage src={user.image} alt={user.name ?? "Profile picture"} />
+                )}
+                <AvatarFallback className="bg-indigo-500/20 text-sm text-indigo-300">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                aria-label="Sign out"
+                title="Sign out"
+                className="text-zinc-300 hover:bg-white/10 hover:text-white"
+              >
+                <LogOutIcon />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="text-sm font-medium text-indigo-400 transition-colors hover:text-indigo-300"
+              >
+                Sign In
+              </Link>
+
+              <Button
+                render={<Link href="/sign-up" />}
+                className="h-10 rounded-lg bg-indigo-500 px-5 text-white hover:bg-indigo-600 md:px-6 md:text-base"
+              >
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
       </nav>
     </header>

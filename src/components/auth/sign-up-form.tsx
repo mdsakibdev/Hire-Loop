@@ -5,6 +5,7 @@ import Link from "next/link"
 
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 import { GoogleAuthButton } from "@/components/auth/google-auth-button"
 
@@ -14,14 +15,23 @@ export const authInputClass =
 
 export const authLabelClass = "mb-1.5 block text-[15px] text-zinc-100"
 
+export type UserRole = "seeker" | "recruiter" | "admin"
+
 export type SignUpData = {
   fullName: string
   email: string
   password: string
   confirmPassword: string
+  role: UserRole
   /** "on" when the terms checkbox is checked (required inputs only). */
   terms?: string
 }
+
+const roleOptions: { value: UserRole; label: string; description: string }[] = [
+  { value: "seeker", label: "Job Seeker", description: "Find and apply to jobs" },
+  { value: "recruiter", label: "Recruiter", description: "Post jobs and hire" },
+  { value: "admin", label: "Admin", description: "Manage the platform" },
+]
 
 /**
  * Collects all form inputs into a plain object.
@@ -33,7 +43,14 @@ function collectFormData(event: FormEvent<HTMLFormElement>): SignUpData {
   return data as SignUpData
 }
 
-export function SignUpForm({onSubmit,}: {onSubmit: (data: SignUpData) => Promise<void> | void}) {
+export function SignUpForm({
+  onSubmit,
+  error: authError,
+}: {
+  onSubmit: (data: SignUpData) => Promise<void> | void
+  /** Error message from the auth client, shown above the submit button. */
+  error?: string | null
+}) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -119,6 +136,35 @@ export function SignUpForm({onSubmit,}: {onSubmit: (data: SignUpData) => Promise
         </div>
       </div>
 
+      {/* Account role */}
+      <fieldset>
+        <legend className={`${authLabelClass} mt-5 mb-0`}>I want to join as:</legend>
+        <RadioGroup
+          name="role"
+          defaultValue="seeker"
+          required
+          className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3"
+        >
+          {roleOptions.map((option) => (
+            <label
+              key={option.value}
+              className="flex cursor-pointer items-start gap-3 rounded-md border border-white/10 bg-[#2b0f36] px-3 py-3 transition-colors outline-none has-focus-visible:ring-3 has-focus-visible:ring-pink-400/50 has-data-checked:border-pink-500 has-data-checked:bg-pink-500/15"
+            >
+              <RadioGroupItem
+                value={option.value}
+                className="mt-0.5 data-checked:border-pink-500 data-checked:bg-pink-500 data-checked:text-white"
+              />
+              <span>
+                <span className="block text-[15px] font-medium text-zinc-100">
+                  {option.label}
+                </span>
+                <span className="block text-xs text-zinc-400">{option.description}</span>
+              </span>
+            </label>
+          ))}
+        </RadioGroup>
+      </fieldset>
+
       {/* Terms agreement */}
       <label className="mt-5 flex cursor-pointer items-center gap-3 text-[15px] text-zinc-100">
         <Checkbox
@@ -137,7 +183,9 @@ export function SignUpForm({onSubmit,}: {onSubmit: (data: SignUpData) => Promise
         </span>
       </label>
 
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+      {(error ?? authError) && (
+        <p className="mt-3 text-sm text-red-400">{error ?? authError}</p>
+      )}
 
       {/* Submit */}
       <button

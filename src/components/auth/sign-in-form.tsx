@@ -9,17 +9,43 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { GoogleAuthButton } from "@/components/auth/google-auth-button"
 import { authInputClass, authLabelClass } from "@/components/auth/sign-up-form"
 
-export function SignInForm() {
-  const [formData, setFormData] = useState<Record<string, string> | null>(null)
+export type SignInData = {
+  email: string
+  password: string
+  /** "on" when the remember-me checkbox is checked. */
+  rememberMe?: string
+}
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+/**
+ * Collects all form inputs into a plain object.
+ */
+function collectFormData(event: FormEvent<HTMLFormElement>): SignInData {
+  const data = Object.fromEntries(
+    new FormData(event.currentTarget)
+  ) as Record<string, string>
+  return data as SignInData
+}
+
+export function SignInForm({onSubmit,error: authError,}: {
+  onSubmit: (data: SignInData) => Promise<void> | void
+  error?: string | null
+}) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>
-    setFormData(data)
-    console.log("Sign-in form data:", data)
-    console.log(formData)
-    // TODO: integrate sign-in API here — `data` has:
-    // email, password, rememberMe ("on" when checked)
+
+    const data = collectFormData(event)
+
+    setError(null)
+
+    setIsLoading(true)
+    try {
+      await onSubmit(data)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -59,12 +85,17 @@ export function SignInForm() {
         <span>Remember me for 30 days</span>
       </label>
 
+      {(error ?? authError) && (
+        <p className="mt-3 text-sm text-red-400">{error ?? authError}</p>
+      )}
+
       {/* Submit */}
       <button
         type="submit"
-        className="mt-8 h-12 w-full rounded-lg bg-linear-to-r from-[#c13575] via-[#dc4188] to-[#f26da8] text-lg font-medium text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-pink-400/50 focus-visible:outline-none"
+        disabled={isLoading}
+        className="mt-8 h-12 w-full rounded-lg bg-linear-to-r from-[#c13575] via-[#dc4188] to-[#f26da8] text-lg font-medium text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-pink-400/50 focus-visible:outline-none disabled:opacity-60"
       >
-        Sign in
+        {isLoading ? "Signing in..." : "Sign in"}
       </button>
 
       {/* Google */}

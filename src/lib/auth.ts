@@ -10,6 +10,19 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      role: {
+        // Literal-union field: only these values are accepted.
+        type: ["seeker", "recruiter", "admin"],
+        // Allow the role to be provided on sign-up.
+        input: true,
+        // Not required — defaults to "seeker" when omitted.
+        required: false,
+        defaultValue: "seeker",
+      },
+    },
+  },
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
